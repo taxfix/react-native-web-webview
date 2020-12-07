@@ -7,10 +7,9 @@ export class WebView extends Component {
     scrollEnabled: true,
   };
 
-  state = { html: undefined, baseUrl: undefined, injectedJavaScript: undefined };
-
   constructor(props) {
     super(props);
+    
     this.state = {
       html: props.source.html,
       baseUrl: props.source.baseUrl,
@@ -46,6 +45,12 @@ export class WebView extends Component {
     }
     if (html) {
       doc += html;
+    }
+    if (this.props.onMessage) {
+      doc = doc.replace('</body>', `<script>window.ReactNativeWebView = window.parent;</script></body>`);
+    }
+    if (this.props.onLoadEnd) {
+      doc = doc.replace('</body>', `<script>document.addEventListener("DOMContentLoaded", function () { window.parent.postMessage('DOMContentLoaded'); })</script></body>`);
     }
     if (injectedJavaScript) {
       doc = doc.replace('</body>', `<script>${injectedJavaScript}</script></body>`);
@@ -87,7 +92,7 @@ export class WebView extends Component {
   };
 
   componentDidMount() {
-    if (this.props.onMessage) {
+    if (typeof this.props.onMessage === 'function' || typeof this.props.onLoadEnd === 'function') {
       window.addEventListener('message', this.onMessage, true);
     }
   }
@@ -105,12 +110,16 @@ export class WebView extends Component {
   }
 
   componentWillUnmount() {
-    if (this.props.onMessage) {
-      window.removeEventListener('message', this.onMessage, true);
-    }
+    window.removeEventListener('message', this.onMessage, true);
   }
 
-  onMessage = (nativeEvent) => this.props.onMessage({ nativeEvent });
+  onMessage = (nativeEvent) => {
+    if (typeof this.props.onLoadEnd === 'function' && nativeEvent.data === 'DOMContentLoaded') {
+      this.props.onLoadEnd();
+    } else if (typeof this.props.onMessage === 'function') {
+      this.props.onMessage({ nativeEvent })
+    }
+  };
 
   postMessage = (message, origin) => {
     this.frameRef.contentWindow.postMessage(message, origin);
