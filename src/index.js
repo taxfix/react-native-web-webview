@@ -9,12 +9,12 @@ export class WebView extends Component {
 
   constructor(props) {
     super(props);
-    
+
     this.state = {
       html: props.source.html,
       baseUrl: props.source.baseUrl,
       injectedJavaScript: props.injectedJavaScript,
-    }
+    };
 
     if (props.source.uri) {
       if (props.newWindow) {
@@ -31,8 +31,8 @@ export class WebView extends Component {
     const { uri, ...options } = source;
     const baseUrl = uri.substr(0, uri.lastIndexOf('/') + 1);
     fetch(uri, options)
-      .then(response => response.text())
-      .then(html => this.setState({ html, baseUrl }));
+      .then((response) => response.text())
+      .then((html) => this.setState({ html, baseUrl }));
   };
 
   getSourceDocument = () => {
@@ -50,14 +50,17 @@ export class WebView extends Component {
       doc = doc.replace('</body>', `<script>window.ReactNativeWebView = window.parent;</script></body>`);
     }
     if (this.props.onLoadEnd) {
-      doc = doc.replace('</body>', `<script>document.addEventListener("DOMContentLoaded", function () { window.parent.postMessage('DOMContentLoaded'); })</script></body>`);
+      doc = doc.replace(
+        '</body>',
+        `<script>document.addEventListener("DOMContentLoaded", function () { window.parent.postMessage('DOMContentLoaded'); })</script></body>`
+      );
     }
     if (injectedJavaScript) {
       doc = doc.replace('</body>', `<script>${injectedJavaScript}</script></body>`);
     }
 
     return doc;
-  }
+  };
 
   handleSourceInNewWindow = (source, newWindow) => {
     if (source.method === 'POST') {
@@ -117,7 +120,7 @@ export class WebView extends Component {
     if (typeof this.props.onLoadEnd === 'function' && nativeEvent.data === 'DOMContentLoaded') {
       this.props.onLoadEnd();
     } else if (typeof this.props.onMessage === 'function') {
-      this.props.onMessage({ nativeEvent })
+      this.props.onMessage({ nativeEvent });
     }
   };
 
