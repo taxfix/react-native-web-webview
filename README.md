@@ -44,9 +44,14 @@ Supported props are:
 
 - `source`
 - `onMessage`
+- `onLoadEnd`
 - `scrollEnabled`
 - `injectedJavaScript`
 - `style`
+
+Supported methods are:
+
+- `injectJavaScript`
 
 Additional, web-specific props are:
 

@@ -7,31 +7,59 @@ export class WebView extends Component {
     scrollEnabled: true,
   };
 
-  state = { html: null };
-
   constructor(props) {
     super(props);
-    this.handleSource(props.source, props.newWindow);
+
+    this.state = {
+      html: props.source.html,
+      baseUrl: props.source.baseUrl,
+      injectedJavaScript: props.injectedJavaScript,
+    };
+
+    if (props.source.uri) {
+      if (props.newWindow) {
+        this.handleSourceInNewWindow(props.source, props.newWindow);
+      } else {
+        this.handleSourceInIFrame(props.source);
+      }
+    }
   }
 
   setRef = (ref) => (this.frameRef = ref);
-
-  handleSource = (source, newWindow) => {
-    if (!source.method) return;
-
-    if (newWindow) {
-      this.handleSourceInNewWindow(source, newWindow);
-    } else {
-      this.handleSourceInIFrame(source);
-    }
-  };
 
   handleSourceInIFrame = (source) => {
     const { uri, ...options } = source;
     const baseUrl = uri.substr(0, uri.lastIndexOf('/') + 1);
     fetch(uri, options)
       .then((response) => response.text())
-      .then((html) => this.setState({ html: `<base href="${baseUrl}" />` + html }));
+      .then((html) => this.setState({ html, baseUrl }));
+  };
+
+  getSourceDocument = () => {
+    const { html, baseUrl, injectedJavaScript } = this.state;
+    if (!html) return html;
+
+    let doc = '';
+    if (baseUrl) {
+      doc += `<base href="${baseUrl}" />`;
+    }
+    if (html) {
+      doc += html;
+    }
+    if (this.props.onMessage) {
+      doc = doc.replace('</body>', `<script>window.ReactNativeWebView = window.parent;</script></body>`);
+    }
+    if (this.props.onLoadEnd) {
+      doc = doc.replace(
+        '</body>',
+        `<script>document.addEventListener("DOMContentLoaded", function () { window.parent.postMessage('DOMContentLoaded'); })</script></body>`
+      );
+    }
+    if (injectedJavaScript) {
+      doc = doc.replace('</body>', `<script>${injectedJavaScript}</script></body>`);
+    }
+
+    return doc;
   };
 
   handleSourceInNewWindow = (source, newWindow) => {
@@ -67,7 +95,7 @@ export class WebView extends Component {
   };
 
   componentDidMount() {
-    if (this.props.onMessage) {
+    if (typeof this.props.onMessage === 'function' || typeof this.props.onLoadEnd === 'function') {
       window.addEventListener('message', this.onMessage, true);
     }
   }
@@ -76,34 +104,32 @@ export class WebView extends Component {
     if (
       this.props.source.uri !== nextProps.source.uri ||
       this.props.source.method !== nextProps.source.method ||
-      this.props.source.body !== nextProps.source.body
+      this.props.source.body !== nextProps.source.body ||
+      this.props.source.html !== nextProps.source.html ||
+      this.props.source.baseUrl !== nextProps.source.baseUrl
     ) {
       this.handleSource(nextProps.source, nextProps.newWindow);
     }
   }
 
   componentWillUnmount() {
-    if (this.props.onMessage) {
-      window.removeEventListener('message', this.onMessage, true);
-    }
+    window.removeEventListener('message', this.onMessage, true);
   }
 
-  onMessage = (nativeEvent) => this.props.onMessage({ nativeEvent });
+  onMessage = (nativeEvent) => {
+    if (typeof this.props.onLoadEnd === 'function' && nativeEvent.data === 'DOMContentLoaded') {
+      this.props.onLoadEnd();
+    } else if (typeof this.props.onMessage === 'function') {
+      this.props.onMessage({ nativeEvent });
+    }
+  };
 
   postMessage = (message, origin) => {
     this.frameRef.contentWindow.postMessage(message, origin);
   };
 
-  handleInjectedJavaScript = (html) => {
-    if (this.props.injectedJavaScript) {
-      if (html) {
-        return html.replace('</body>', `<script>${this.props.injectedJavaScript}</script></body>`);
-      } else {
-        return html;
-      }
-    } else {
-      return html;
-    }
+  injectJavaScript = (expression) => {
+    this.frameRef.contentWindow.Function(`"use strict"; return ${expression};`)();
   };
 
   render() {
@@ -120,8 +146,7 @@ export class WebView extends Component {
     return createElement('iframe', {
       title,
       ref: this.setRef,
-      src: !source.method ? source.uri : undefined,
-      srcDoc: this.handleInjectedJavaScript(this.state.html || source.html),
+      srcDoc: this.getSourceDocument(),
       width: styleObj && styleObj.width,
       height: styleObj && styleObj.height,
       style: StyleSheet.flatten([styles.iframe, scrollEnabled && styles.noScroll, this.props.style]),
