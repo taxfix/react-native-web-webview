@@ -3,11 +3,9 @@ kind: Component
 metadata:
   name: react-native-web-webview
   description: React Native for Web implementation of RN's WebView
-  annotations: []
 spec:
   type: library
   lifecycle: production
   domain: frontend-apps
-  system: unknown
+  system: native-modules
   owner: frontend-platform
-relations: []
