@@ -7,5 +7,5 @@ spec:
   type: library
   lifecycle: production
   domain: frontend-apps
-  system: native-modules
+  system: frontend-app-framework
   owner: frontend-platform
