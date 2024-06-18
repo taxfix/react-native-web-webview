@@ -8,4 +8,4 @@ spec:
   lifecycle: production
   domain: frontend-apps
   system: frontend-app-framework
-  owner: frontend-platform
+  owner: developer-experience
