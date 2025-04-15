@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-v-in-tag": true,
+  "tag-separator": "@",
+  "packages": {
+    ".": {}
+  },
+  "release-type": "node",
+  "include-component-in-tag": false,
+  "bootstrap-sha": "9c232a1827e984232d98efacfe1ce0b6072c5c7b"
+}
