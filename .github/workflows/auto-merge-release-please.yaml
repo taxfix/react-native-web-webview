@@ -1,0 +1,10 @@
+name: Auto merge release-please PRs
+on:
+  schedule:
+    - cron: "0 8,10,12,14,16,18 * * 1-5"   # every 2 hours from 8 to 18 only on weekdays
+  workflow_dispatch:
+  
+jobs:
+  scheduled-release:
+    uses: taxfix/actions/.github/workflows/auto-release-workflow.yml@main
+    secrets: inherit
